@@ -1,5 +1,7 @@
 # Notification Processor
 
+[![Build Status](https://dev.azure.com/guilhermelopesmartins/notification-processor/_apis/build/status%2Fguilhermelopesmartins.notification-processor?branchName=main)](https://dev.azure.com/guilhermelopesmartins/notification-processor/_build/latest?definitionId=1&branchName=main)
+
 Serverless notification processing system built with Azure Functions, Service Bus, and SQL Server.
 
 > Part of the roadmap: QA Analyst → Backend Developer (.NET)
