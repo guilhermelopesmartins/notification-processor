@@ -22,14 +22,14 @@ stages:
             inputs:
               version: '8.x'
 
-          - script: dotnet restore
+          - script: dotnet restore NotificationProcessor.slnx
             displayName: 'Restore dependencies'
 
-          - script: dotnet build --configuration $(buildConfiguration) --no-restore
+          - script: dotnet build NotificationProcessor.slnx --configuration $(buildConfiguration) --no-restore
             displayName: 'Build'
 
           - script: >
-              dotnet test --no-build
+              dotnet test NotificationProcessor.slnx --no-build
               --configuration $(buildConfiguration)
               --collect:"XPlat Code Coverage"
               --results-directory $(Agent.TempDirectory)
