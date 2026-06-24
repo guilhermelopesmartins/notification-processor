@@ -1,0 +1,28 @@
+{
+    "version": "2.0",
+    "logging": {
+        "applicationInsights": {
+        "samplingSettings": {
+            "isEnabled": true,
+            "excludedTypes": "Request"
+        },
+        "enableLiveMetricsFilters": true
+        }
+    },
+    "extensions": {
+        "serviceBus": {
+        "prefetchCount": 0,
+        "messageHandlerOptions": {
+            "autoCompleteMessages": false,
+            "maxConcurrentCalls": 1,
+            "maxAutoLockRenewalDuration": "00:05:00"
+        }
+        }
+    },
+    "retry": {
+        "strategy": "exponentialBackoff",
+        "maxRetryCount": 3,
+        "minimumInterval": "00:00:02",
+        "maximumInterval": "00:00:30"
+    }
+}
