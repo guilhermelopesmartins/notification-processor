@@ -1,0 +1,64 @@
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+stages:
+  - stage: Build
+    displayName: 'Build and Tests'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Build, Test and Coverage'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET 8'
+            inputs:
+              version: '8.x'
+
+          - script: dotnet restore
+            displayName: 'Restore dependencies'
+
+          - script: dotnet build --configuration $(buildConfiguration) --no-restore
+            displayName: 'Build'
+
+          - script: >
+              dotnet test --no-build
+              --configuration $(buildConfiguration)
+              --collect:"XPlat Code Coverage"
+              --results-directory $(Agent.TempDirectory)
+              --logger trx
+            displayName: 'Run tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '**/*.trx'
+              searchFolder: '$(Agent.TempDirectory)'
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publish code coverage'
+            inputs:
+              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Publish artifact'
+            inputs:
+              command: 'publish'
+              publishWebProjects: false
+              projects: '**/NotificationProcessor.Functions.csproj'
+              arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Save artifact'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'functions-drop'
