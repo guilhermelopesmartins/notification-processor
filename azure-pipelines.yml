@@ -56,7 +56,7 @@ stages:
             inputs:
               command: 'publish'
               publishWebProjects: false
-              projects: '**/NotificationProcessor.Functions.csproj'
+              projects: 'src/NotificationProcessor.Functions/NotificationProcessor.Functions.csproj'
               arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/functions'
 
           - task: DotNetCoreCLI@2
@@ -64,7 +64,7 @@ stages:
             inputs:
               command: 'publish'
               publishWebProjects: false
-              projects: '**/NotificationProcessor.Migrator.csproj'
+              projects: 'src/NotificationProcessor.Migrator/NotificationProcessor.Migrator.csproj'
               arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/migrator'
 
           - task: PublishBuildArtifacts@1
