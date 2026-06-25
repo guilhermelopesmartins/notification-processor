@@ -2,7 +2,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NotificationProcesso.Infrastructure.Persistence;
+using NotificationProcessor.Infrastructure.Persistence;
 using NotificationProcessor.Application.Interfaces;
 
 namespace NotificationProcessor.Infrastructure;
