@@ -9,6 +9,8 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
+  azureSubscription: 'azure-notification-processor-dev'
+  functionAppName: 'func-notification-processor-dev'
 
 stages:
   - stage: Build
@@ -50,15 +52,44 @@ stages:
               summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
 
           - task: DotNetCoreCLI@2
-            displayName: 'Publish artifact'
+            displayName: 'Publish Functions artifact'
             inputs:
               command: 'publish'
               publishWebProjects: false
               projects: '**/NotificationProcessor.Functions.csproj'
-              arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+              arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/functions'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Publish Migrator artifact'
+            inputs:
+              command: 'publish'
+              publishWebProjects: false
+              projects: '**/NotificationProcessor.Migrator.csproj'
+              arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/migrator'
 
           - task: PublishBuildArtifacts@1
-            displayName: 'Save artifact'
+            displayName: 'Save artifacts'
             inputs:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'functions-drop'
+              ArtifactName: 'drop'
+
+  - stage: Deploy
+    displayName: 'Deploy to Dev'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployDev
+        displayName: 'Deploy to Azure'
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@2
+                  displayName: 'Deploy Azure Functions'
+                  inputs:
+                    connectedServiceNameARM: '$(azureSubscription)'
+                    appType: 'functionAppLinux'
+                    appName: '$(functionAppName)'
+                    package: '$(Pipeline.Workspace)/drop/functions/*.zip'
+                    deploymentMethod: 'auto'
