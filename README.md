@@ -4,47 +4,52 @@
 
 Serverless notification processing system built with Azure Functions, Service Bus, and SQL Server.
 
-> Part of the roadmap: QA Analyst → Backend Developer (.NET)
+---
+
+## Live Demo
+
+The system is deployed and running on Azure. You can test the endpoint:
+
+```bash
+curl -X POST "https://func-notification-processor-dev-bka5bad2hjdubsf8.brazilsouth-01.azurewebsites.net/api/notifications" \
+  -H "Content-Type: application/json" \
+  -H "x-functions-key: YOUR_FUNCTION_KEY" \
+  -d '{"type": "email", "recipient": "test@example.com", "subject": "Test", "body": "Live test"}'
+```
+
+Returns `202 Accepted` with `messageId` and `correlationId` for tracking.
+
+> The function key can be obtained from the Azure Portal under the Function App settings.
 
 ---
 
 ## Architecture
-[Client]
 
-│
+```
+┌─────────┐   POST /api/notifications   ┌──────────────────────┐
+│  Client │ ─────────────────────────► │ NotificationProducer │ HTTP Trigger
+└─────────┘                             └──────────┬───────────┘
+                                                   │ publishes message
+                                                   ▼
+                                        ┌──────────────────────┐
+                                        │   Azure Service Bus  │ "notifications" queue
+                                        └──────────┬───────────┘
+                                                   │ triggers
+                                                   ▼
+                                        ┌──────────────────────┐
+                                        │ NotificationConsumer │ Service Bus Trigger
+                                        └──────────┬───────────┘
+                                                   │ persists via stored procedure
+                                                   ▼
+                                        ┌──────────────────────┐
+                                        │      SQL Server      │ Azure SQL Database
+                                        └──────────────────────┘
 
-│ POST /api/notifications
-
-▼
-
-[NotificationProducer]          ← HTTP Trigger
-
-│
-
-│ publishes message
-
-▼
-
-[Azure Service Bus]             ← "notifications" queue
-
-│
-
-│ consumes message
-
-▼
-
-[NotificationConsumer]          ← Service Bus Trigger
-
-│
-
-│ persists via stored procedure
-
-▼
-
-[SQL Server]
-[NotificationCleanup]           ← Timer Trigger (03:00 AM UTC)
-
-└─ archives records older than 30 days
+┌──────────────────────┐
+│ NotificationCleanup  │ Timer Trigger — runs daily at 03:00 AM UTC
+│                      │ archives records older than 30 days
+└──────────────────────┘
+```
 
 ---
 
@@ -53,7 +58,19 @@ Serverless notification processing system built with Azure Functions, Service Bu
 - **Azure Functions v4** — Isolated Worker model (.NET 8)
 - **Azure Service Bus** — queue with dead-letter and automatic retry
 - **SQL Server** — stored procedures via Dapper
+- **Azure Identity** — Managed Identity (passwordless authentication)
 - **xUnit + NSubstitute + FluentAssertions** — unit tests
+
+---
+
+## CI/CD
+
+Automated pipeline on Azure DevOps:
+
+- **Build stage** — restore, build, test, coverage report, artifact generation
+- **Deploy stage** — automatic deploy to Azure Functions on push to `main`
+- **Database** — Azure SQL with Managed Identity (passwordless authentication)
+- **Secrets** — no credentials in code or repository
 
 ---
 
@@ -149,3 +166,6 @@ The HTTP Trigger doesn't know whether the notification will be delivered success
 
 **Why manual message completion?**
 With `autoCompleteMessages: false` in `host.json`, the Consumer explicitly calls `CompleteMessageAsync` only after successfully persisting to the database. This prevents silent message loss if the function completes but the database write fails.
+
+**Why Managed Identity instead of connection strings with passwords?**
+Managed Identity eliminates the need to store database credentials in code or configuration. The Function App authenticates to SQL Server using its Azure AD identity, with no secrets to rotate or accidentally expose.
