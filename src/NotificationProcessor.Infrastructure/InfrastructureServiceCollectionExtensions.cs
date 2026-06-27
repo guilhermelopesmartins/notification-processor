@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NotificationProcessor.Infrastructure.Persistence;
 using NotificationProcessor.Application.Interfaces;
+using NotificationProcessor.Infrastructure.Messaging;
 
 namespace NotificationProcessor.Infrastructure;
 
@@ -27,6 +28,15 @@ public static class InfrastructureServiceCollectionExtensions
                 configuration["SqlConnectionString"]
                     ?? throw new InvalidOperationException("SqlConnectionString não configurada."),
                 sp.GetRequiredService<ILogger<NotificationRepository>>()));
+
+        services.AddTransient<IEmailSender>(sp =>
+            new SendGridEmailSender(
+                configuration["SendGridApiKey"]
+                    ?? throw new InvalidOperationException("SendGridApiKey não configurada."),
+                configuration["SendGridFromEmail"]
+                    ?? throw new InvalidOperationException("SendGridFromEmail não configurada."),
+                configuration["SendGridFromName"] ?? "Notification Processor",
+                sp.GetRequiredService<ILogger<SendGridEmailSender>>()));
 
         return services;
     }

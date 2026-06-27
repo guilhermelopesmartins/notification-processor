@@ -4,19 +4,23 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using NotificationProcessor.Application.Interfaces;
 using NotificationProcessor.Application.Models;
+using NotificationProcessor.Infrastructure.Messaging;
 
 namespace NotificationProcessor.Functions;
 
 public class NotificationConsumer
 {
     private readonly INotificationRepository _repository;
+    private readonly IEmailSender _emailSender;
     private readonly ILogger<NotificationConsumer> _logger;
 
     public NotificationConsumer(
         INotificationRepository repository,
+        IEmailSender emailSender,
         ILogger<NotificationConsumer> logger)
     {
         _repository = repository;
+        _emailSender = emailSender;
         _logger = logger;
     }
 
@@ -77,6 +81,8 @@ public class NotificationConsumer
 
             await _repository.InsertAsync(record, cancellationToken);
 
+            await SendNotificationAsync(notificationMessage.Notification, cancellationToken);
+
             await _repository.UpdateStatusAsync(notificationMessage.MessageId, "Processed", cancellationToken);
 
             _logger.LogInformation(
@@ -96,6 +102,40 @@ public class NotificationConsumer
 
             await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken);
             throw;
+        }
+    }
+
+    private async Task SendNotificationAsync(NotificationRequest notification, CancellationToken cancellationToken)
+    {
+        switch (notification.Type.ToLower())
+        {
+            case "email":
+                await _emailSender.SendAsync(
+                    notification.Recipient,
+                    notification.Subject,
+                    notification.Body,
+                    cancellationToken);
+                break;
+
+            case "sms":
+                // Twilio — implementar no próximo passo
+                _logger.LogInformation(
+                    "SMS notification queued. Recipient={Recipient}",
+                    notification.Recipient);
+                break;
+
+            case "push":
+                // Firebase — implementar futuramente
+                _logger.LogInformation(
+                    "Push notification queued. Recipient={Recipient}",
+                    notification.Recipient);
+                break;
+
+            default:
+                _logger.LogWarning(
+                    "Unknown notification type: {Type}",
+                    notification.Type);
+                break;
         }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NotificationProcessor.Application.Interfaces;
 using NotificationProcessor.Application.Models;
 using NotificationProcessor.Functions;
+using NotificationProcessor.Infrastructure.Messaging;
 using NSubstitute;
 
 namespace NotificationProcessor.Tests;
@@ -13,14 +14,16 @@ namespace NotificationProcessor.Tests;
 public class NotificationConsumerTests
 {
     private readonly INotificationRepository _repository;
+    private readonly IEmailSender _emailSender;
     private readonly ILogger<NotificationConsumer> _logger;
     private readonly NotificationConsumer _consumer;
 
     public NotificationConsumerTests()
     {
         _repository = Substitute.For<INotificationRepository>();
+        _emailSender = Substitute.For<IEmailSender>();
         _logger = Substitute.For<ILogger<NotificationConsumer>>();
-        _consumer = new NotificationConsumer(_repository, _logger);
+        _consumer = new NotificationConsumer(_repository, _emailSender, _logger);
     }
 
     [Fact]
