@@ -84,6 +84,8 @@ Automated pipeline on Azure DevOps:
 
 **Correlation ID** — every notification carries a `CorrelationId` from entry to storage, enabling end-to-end tracing across logs.
 
+**Multi-channel support** — the system is designed to support multiple notification channels (email, SMS, push). Email is fully implemented via SendGrid. SMS (Twilio) and Push (Firebase) are planned for a future iteration.
+
 ---
 
 ## Local Setup
