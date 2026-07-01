@@ -10,11 +10,22 @@ Serverless notification processing system built with Azure Functions, Service Bu
 
 The system is deployed and running on Azure. You can test the endpoint:
 
+**Linux/Mac:**
 ```bash
 curl -X POST "https://func-notification-processor-dev-bka5bad2hjdubsf8.brazilsouth-01.azurewebsites.net/api/notifications" \
   -H "Content-Type: application/json" \
   -H "x-functions-key: YOUR_FUNCTION_KEY" \
   -d '{"type": "email", "recipient": "test@example.com", "subject": "Test", "body": "Live test"}'
+```
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -Uri "https://func-notification-processor-dev-bka5bad2hjdubsf8.brazilsouth-01.azurewebsites.net/api/notifications" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Headers @{"x-functions-key" = "YOUR_FUNCTION_KEY"} `
+  -Body '{"type": "email", "recipient": "test@example.com", "subject": "Test", "body": "Live test"}' `
+  -UseBasicParsing
 ```
 
 Returns `202 Accepted` with `messageId` and `correlationId` for tracking.
