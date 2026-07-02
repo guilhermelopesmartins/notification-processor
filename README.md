@@ -71,6 +71,7 @@ Returns `202 Accepted` with `messageId` and `correlationId` for tracking.
 - **SQL Server** — stored procedures via Dapper
 - **Azure Identity** — Managed Identity (passwordless authentication)
 - **xUnit + NSubstitute + FluentAssertions** — unit tests
+- **SendGrid** — email delivery via API
 
 ---
 
@@ -161,7 +162,7 @@ func start
 ## Running Tests
 
 ```bash
-dotnet test
+dotnet test NotificationProcessor.sln
 ```
 
 ---
