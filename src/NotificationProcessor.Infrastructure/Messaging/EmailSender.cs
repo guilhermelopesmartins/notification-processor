@@ -1,6 +1,8 @@
+using System.Net;
+using Azure;
+using Azure.Communication.Email;
 using Microsoft.Extensions.Logging;
-using SendGrid;
-using SendGrid.Helpers.Mail;
+using Azure.Communication.Email;
 
 namespace NotificationProcessor.Infrastructure.Messaging;
 
@@ -9,51 +11,44 @@ public interface IEmailSender
     Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default);
 }
 
-public class SendGridEmailSender : IEmailSender
+public class AzureEmailSender : IEmailSender
 {
-    private readonly string _apiKey;
-    private readonly string _fromEmail;
-    private readonly string _fromName;
-    private readonly ILogger<SendGridEmailSender> _logger;
+    private readonly EmailClient _client;
+    private readonly string _senderAddress;
+    private readonly ILogger<AzureEmailSender> _logger;
 
-    public SendGridEmailSender(string apiKey, string fromEmail, string fromName, ILogger<SendGridEmailSender> logger)
+    public AzureEmailSender(EmailClient client, string senderAddress, ILogger<AzureEmailSender> logger)
     {
-        _apiKey = apiKey;
-        _fromEmail = fromEmail;
-        _fromName = fromName;
+        _client = client;
+        _senderAddress = senderAddress;
         _logger = logger;
     }
 
     public async Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default)
     {
-        var client = new SendGridClient(_apiKey);
-
-        var message = new SendGridMessage
+        var content = new EmailContent(subject)
         {
-            From = new EmailAddress(_fromEmail, _fromName),
-            Subject = subject,
-            PlainTextContent = body,
-            HtmlContent = $"<p>{body}</p>"
+            PlainText = body,
+            // Codifica o texto para evitar que HTML enviado no body seja interpretado no email
+            Html = $"<p>{WebUtility.HtmlEncode(body)}</p>"
         };
 
-        message.AddTo(new EmailAddress(to));
+        var message = new EmailMessage(_senderAddress, to, content);
 
-        var response = await client.SendEmailAsync(message, cancellationToken);
+        // WaitUntil.Completed aguarda o serviço confirmar o resultado do envio
+        EmailSendOperation operation = await _client.SendAsync(WaitUntil.Completed, message, cancellationToken);
 
-        if (response.IsSuccessStatusCode)
+        if (operation.Value.Status != EmailSendStatus.Succeeded)
         {
-            _logger.LogInformation(
-                "Email sent successfully. To={To}, Subject={Subject}",
-                to, subject);
-        }
-        else
-        {
-            var responseBody = await response.Body.ReadAsStringAsync(cancellationToken);
             _logger.LogError(
-                "Failed to send email. To={To}, StatusCode={StatusCode}, Response={Response}",
-                to, response.StatusCode, responseBody);
+                "Failed to send email. To={To}, Status={Status}, OperationId={OperationId}",
+                to, operation.Value.Status, operation.Id);
 
-            throw new InvalidOperationException($"SendGrid returned {response.StatusCode}: {responseBody}");
+            throw new InvalidOperationException($"Email send failed with status {operation.Value.Status}");
         }
+
+        _logger.LogInformation(
+            "Email sent successfully. To={To}, OperationId={OperationId}",
+            to, operation.Id);
     }
 }

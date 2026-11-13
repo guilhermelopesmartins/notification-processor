@@ -1,10 +1,11 @@
+using Azure.Communication.Email;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NotificationProcessor.Infrastructure.Persistence;
 using NotificationProcessor.Application.Interfaces;
 using NotificationProcessor.Infrastructure.Messaging;
+using NotificationProcessor.Infrastructure.Persistence;
 
 namespace NotificationProcessor.Infrastructure;
 
@@ -29,14 +30,16 @@ public static class InfrastructureServiceCollectionExtensions
                     ?? throw new InvalidOperationException("SqlConnectionString não configurada."),
                 sp.GetRequiredService<ILogger<NotificationRepository>>()));
 
+        services.AddSingleton(_ =>
+            new EmailClient(configuration["AcsConnectionString"]
+                ?? throw new InvalidOperationException("AcsConnectionString não configurada.")));
+
         services.AddTransient<IEmailSender>(sp =>
-            new SendGridEmailSender(
-                configuration["SendGridApiKey"]
-                    ?? throw new InvalidOperationException("SendGridApiKey não configurada."),
-                configuration["SendGridFromEmail"]
-                    ?? throw new InvalidOperationException("SendGridFromEmail não configurada."),
-                configuration["SendGridFromName"] ?? "Notification Processor",
-                sp.GetRequiredService<ILogger<SendGridEmailSender>>()));
+            new AzureEmailSender(
+                sp.GetRequiredService<EmailClient>(),
+                configuration["AcsSenderAddress"]
+                    ?? throw new InvalidOperationException("AcsSenderAddress não configurada."),
+                sp.GetRequiredService<ILogger<AzureEmailSender>>()));
 
         return services;
     }
